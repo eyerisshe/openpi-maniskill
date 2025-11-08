@@ -53,11 +53,9 @@ class HDF5VLADataset:
         # Multiple tasks
         self.tasks = ['PickCube-v1', 'StackCube-v1']  # RDT-1 Team also included PlugCharger-v1 and PegInsertionSide-v1 and PushCube-v1
         # Load configuration from YAML file
-        with open('base.yaml', 'r') as file:
-            config = yaml.safe_load(file)
-        self.CHUNK_SIZE = config['common']['action_chunk_size']
-        self.IMG_HISTORY_SIZE = config['common']['img_history_size']
-        self.STATE_DIM = config['common']['state_dim']
+        self.CHUNK_SIZE = 64
+        self.IMG_HISTORY_SIZE = 2
+        self.STATE_DIM = 128
 
         self.num_episode_per_task = 1000
         self.img = []
@@ -154,6 +152,7 @@ class HDF5VLADataset:
         start_img_idx = max(0, step_index - self.IMG_HISTORY_SIZE + 1)
         end_img_idx = step_index + 1
 
+
         
         for i in range(start_img_idx, end_img_idx):
             image_path = os.path.join(
@@ -175,6 +174,7 @@ class HDF5VLADataset:
         if img_valid_len < self.IMG_HISTORY_SIZE:
             padding = np.tile(img_history[0:1], (self.IMG_HISTORY_SIZE - img_valid_len, 1, 1, 1))
             img_history = np.concatenate([padding, img_history], axis=0)
+        
 
         img_history_mask = np.array([False] * (self.IMG_HISTORY_SIZE - img_valid_len) + [True] * img_valid_len)
 
@@ -195,7 +195,7 @@ class HDF5VLADataset:
             action_sequence = np.concatenate([action_sequence, padding], axis=0)
 
         action_sequence = interpolate_action_sequence(action_sequence, self.CHUNK_SIZE)
-        print(action_sequence)
+
 
         return {
             "state": state,
