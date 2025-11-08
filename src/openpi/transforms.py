@@ -263,6 +263,8 @@ class TokenizePrompt(DataTransformFn):
             prompt = prompt.item()
 
         tokens, token_masks = self.tokenizer.tokenize(prompt, state)
+        tokens = tokens[np.newaxis]
+        token_masks = token_masks[np.newaxis]
         return {**data, "tokenized_prompt": tokens, "tokenized_prompt_mask": token_masks}
 
 
