@@ -20,6 +20,7 @@ import openpi.models.tokenizer as _tokenizer
 import openpi.policies.aloha_policy as aloha_policy
 import openpi.policies.droid_policy as droid_policy
 import openpi.policies.libero_policy as libero_policy
+import openpi.policies.panda_policy as panda_policy # NEW
 import openpi.shared.download as _download
 import openpi.shared.normalize as _normalize
 import openpi.training.droid_rlds_dataset as droid_rlds_dataset
@@ -452,6 +453,45 @@ class LeRobotDROIDDataConfig(DataConfigFactory):
             model_transforms=model_transforms,
         )
 
+###########################################################################################################################################################
+@dataclasses.dataclass(frozen=True)
+class ManiSkillPandaDataConfig(DataConfigFactory):
+
+    extra_delta_transform: bool = False
+    default_prompt: str | None = None
+
+    @override
+    def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
+    
+        repack_transform = _transforms.Group(
+            inputs=[
+                _transforms.RepackTransform(
+                    {
+                        "image": "image",
+                        "wrist_image": "wrist_image",
+                        "state": "state",
+                        "actions": "actions",
+                        "task": "task",
+                    }
+                )
+            ]
+        )
+        
+        data_transforms = _transforms.Group(
+            inputs=[panda_policy.PandaInputs(model_type=model_config.model_type)],
+            outputs=[panda_policy.PandaOutputs()],
+        )
+
+        model_transforms = ModelTransformFactory(default_prompt=self.default_prompt)(model_config)
+
+        return dataclasses.replace(
+            self.create_base_config(assets_dirs, model_config),
+            repack_transforms=repack_transform, 
+            data_transforms=data_transforms,
+            model_transforms=model_transforms,
+        )
+    
+###########################################################################################################################################################
 
 @dataclasses.dataclass(frozen=True)
 class TrainConfig:
@@ -921,6 +961,22 @@ _CONFIGS = [
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=20_000,
     ),
+###########################################################################################################################################################
+    TrainConfig(
+        name="pi0_panda_lora",
+        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora", action_horizon=30),
+        data=ManiSkillPandaDataConfig(
+            repo_id="eyerisshe/openpi-maniskill-minidata",  # REPLACE WITH YOUR OWN DATA REPO
+            base_config=DataConfig(prompt_from_task=True),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=5_000, 
+        freeze_filter=pi0_config.Pi0Config(
+            paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
+        ).get_freeze_filter(),
+        ema_decay=None,
+    ),
+###########################################################################################################################################################
     #
     # Debugging configs.
     #
