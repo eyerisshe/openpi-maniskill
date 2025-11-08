@@ -86,7 +86,24 @@ class Policy(BasePolicy):
             if noise.ndim == 2:  # If noise is (action_horizon, action_dim), add batch dimension
                 noise = noise[None, ...]  # Make it (1, action_horizon, action_dim)
             sample_kwargs["noise"] = noise
+        
+        if "image" in inputs:
+            for cam in inputs["image"]:
+                inputs["image"][cam] = np.squeeze(inputs["image"][cam], axis=0)
 
+        if "image_mask" in inputs:
+            for cam in inputs["image_mask"]:
+                inputs["image_mask"][cam] = np.squeeze(inputs["image_mask"][cam], axis=0)
+
+        if "state" in inputs:
+            inputs["state"] = np.squeeze(inputs["state"], axis=0)
+
+        if "tokenized_prompt" in inputs:
+            inputs["tokenized_prompt"] = np.squeeze(inputs["tokenized_prompt"], axis=0)
+
+        if "tokenized_prompt_mask" in inputs:
+            inputs["tokenized_prompt_mask"] = np.squeeze(inputs["tokenized_prompt_mask"], axis=0)
+            
         observation = _model.Observation.from_dict(inputs)
         start_time = time.monotonic()
         outputs = {
