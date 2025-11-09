@@ -50,7 +50,7 @@ class HDF5VLADataset:
         # Multiple tasks
         self.tasks = ['PickCube-v1', 'StackCube-v1', 'PushCube-v1']  # RDT-1 Team also included PlugCharger-v1 and PegInsertionSide-v1
         # Load configuration from YAML file
-        self.CHUNK_SIZE = 64
+        self.CHUNK_SIZE = 30
         self.IMG_HISTORY_SIZE = 2
         self.STATE_DIM = 128
 
