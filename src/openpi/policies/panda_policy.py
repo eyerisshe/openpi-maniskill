@@ -35,14 +35,14 @@ class PandaInputs(transforms.DataTransformFn):
         gripper_min = 0.00   # Lower
         gripper_max = 0.04   # Upper
 
-        arm_joints = qpos[:,:7]
-        gripper_joints = qpos[:,7]
+        arm_joints = qpos[:7]
+        gripper_joints = qpos[7]
 
         gripper_pos_normalized = (gripper_joints - gripper_min) / (gripper_max - gripper_min)
         gripper_pos_normalized = np.clip(gripper_pos_normalized, 0.0, 1.0)
         gripper = gripper_pos_normalized[np.newaxis]
 
-        state_8d = np.concatenate([arm_joints, gripper], axis=1)
+        state_8d = np.concatenate([arm_joints, gripper])
        
         inputs = {
                 "state": state_8d,
@@ -51,28 +51,18 @@ class PandaInputs(transforms.DataTransformFn):
                     "left_wrist_0_rgb": np.zeros_like(base_image),
                     "right_wrist_0_rgb": np.zeros_like(base_image),
                 },
-                # "image_mask": {
-                #     "base_0_rgb": np.True_,
-                #     "left_wrist_0_rgb": np.True_,
-                #     "right_wrist_0_rgb": np.False_,
-                # },
                 "image_mask": {
-                    "base_0_rgb": np.array([True]),        
-                    "left_wrist_0_rgb": np.array([False]),   
-                    "right_wrist_0_rgb": np.array([False]),
+                    "base_0_rgb": np.True_,
+                    "left_wrist_0_rgb": np.True_,
+                    "right_wrist_0_rgb": np.False_,
                 },
-                "prompt": "do something",
+                "prompt": data["task"],
                
             }
       
         # Maniskill obs does not provide action and prompt during inference
         if "actions" in data:
-            inputs["actions"] = np.asarray(data["actions"])
-
-        if "prompt" in data:
-            if isinstance(data["prompt"], bytes):
-                prompt = data["prompt"].decode("utf-8") 
-                inputs["prompt"] = prompt[np.newaxis]
+            inputs["actions"] = data["actions"]
 
         return inputs
 

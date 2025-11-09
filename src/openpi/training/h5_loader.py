@@ -45,15 +45,12 @@ class HDF5VLADataset:
     This class is used to sample episodes from the embodiment dataset
     stored in HDF5 files.
     """
-    def __init__(self, repo_id):
-
-        # From config.py
-        self.repo_id = repo_id
+    def __init__(self):
     
         # Multiple tasks
-        self.tasks = ['PickCube-v1', 'StackCube-v1']  # RDT-1 Team also included PlugCharger-v1 and PegInsertionSide-v1 and PushCube-v1
+        self.tasks = ['PickCube-v1', 'StackCube-v1', 'PushCube-v1']  # RDT-1 Team also included PlugCharger-v1 and PegInsertionSide-v1
         # Load configuration from YAML file
-        self.CHUNK_SIZE = 64
+        self.CHUNK_SIZE = 30
         self.IMG_HISTORY_SIZE = 2
         self.STATE_DIM = 128
 
@@ -64,15 +61,13 @@ class HDF5VLADataset:
 
         # open the hdf5 files in memory to speed up the data loading
         for task in self.tasks:
-           
-            local_dir = snapshot_download(
-                repo_id=self.repo_id,
-                repo_type="dataset",
-                allow_patterns=[f"{task}/motionplanning/*.h5"]
-            )
-
+    
             file_path = os.path.join(
-                local_dir,
+                "src",
+                "openpi",
+                "training",
+                "maniskill_data",
+                "demo_1k",
                 task,
                 "motionplanning",
                 f"{task}.h5"
@@ -103,7 +98,7 @@ class HDF5VLADataset:
             "PickCube-v1": "Grasp a red cube and move it to a target goal position.",
             "StackCube-v1":  "Pick up a red cube and stack it on top of a green cube and let go of the cube without it falling.",
           #  "PlugCharger-v1": "Pick up one of the misplaced shapes on the board/kit and insert it into the correct empty slot.",
-          #  "PushCube-v1": "Push and move a cube to a goal region in front of it."
+            "PushCube-v1": "Push and move a cube to a goal region in front of it."
         }
 
     def __len__(self):
@@ -142,21 +137,18 @@ class HDF5VLADataset:
         
 
         # Create the image history (as done in `parse_hdf5_file`)
-        local_dir = snapshot_download(
-            repo_id=self.repo_id,
-            repo_type="dataset",
-            allow_patterns=[f"{self.tasks[task_index]}/motionplanning/{proc_index}/{episode_index}/*.png"]
-        )
-
+    
         img_history = []
         start_img_idx = max(0, step_index - self.IMG_HISTORY_SIZE + 1)
         end_img_idx = step_index + 1
-
-
         
         for i in range(start_img_idx, end_img_idx):
             image_path = os.path.join(
-                local_dir,
+                "src",
+                "openpi",
+                "training",
+                "maniskill_data",
+                "demo_1k",
                 self.tasks[task_index],
                 "motionplanning",
                 str(proc_index),
@@ -165,18 +157,19 @@ class HDF5VLADataset:
             )
 
             img = np.array(Image.open(image_path))
-            img_history.append(img)
-        img_history = np.array(img_history)
+          #  img_history.append(img)
+        #img_history = np.array(img_history)
+        img_history = img  # Batching works differently in π0
+        
         # img_history = images0[start_img_idx:end_img_idx]
-        img_valid_len = img_history.shape[0]
+        #  img_valid_len = img_history.shape[0]
 
         # Pad images if necessary
-        if img_valid_len < self.IMG_HISTORY_SIZE:
-            padding = np.tile(img_history[0:1], (self.IMG_HISTORY_SIZE - img_valid_len, 1, 1, 1))
-            img_history = np.concatenate([padding, img_history], axis=0)
-        
-
-        img_history_mask = np.array([False] * (self.IMG_HISTORY_SIZE - img_valid_len) + [True] * img_valid_len)
+        # if img_valid_len < self.IMG_HISTORY_SIZE:
+        #     padding = np.tile(img_history[0:1], (self.IMG_HISTORY_SIZE - img_valid_len, 1, 1, 1))
+        #     img_history = np.concatenate([padding, img_history], axis=0)
+      #  img_history_mask = np.array([True] * img_valid_len)
+      
 
         # Compute state statistics
         state_std = np.std(states, axis=0)
@@ -184,7 +177,8 @@ class HDF5VLADataset:
         state_norm = np.sqrt(np.mean(states ** 2, axis=0))
 
         # Get state and action at the specified timestep
-        state = states[step_index: step_index + 1]
+       # state = states[step_index: step_index + 1]
+        state = states[step_index] # Batching works differently in π0
         runtime_chunksize = self.CHUNK_SIZE // 4
         action_sequence = actions[step_index: step_index + runtime_chunksize]
         # we use linear interpolation to pad the action sequence
