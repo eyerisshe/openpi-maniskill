@@ -14,3 +14,4 @@ done
 cd "$target_dir" || exit 1
 
 cat demo_1k_part_* > demo_1k.zip
+# Then unzip!
