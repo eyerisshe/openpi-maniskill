@@ -48,7 +48,7 @@ class HDF5VLADataset:
     def __init__(self):
     
         # Multiple tasks
-        self.tasks = ['PickCube-v1', 'StackCube-v1', 'PushCube-v1']  # RDT-1 Team also included PlugCharger-v1 and PegInsertionSide-v1
+        self.tasks = ['PickCube-v1', 'StackCube-v1']  # RDT-1 Team also included PlugCharger-v1 and PegInsertionSide-v1 and PushCube-v1
         # Load configuration from YAML file
         self.CHUNK_SIZE = 30
         self.IMG_HISTORY_SIZE = 2
@@ -98,7 +98,7 @@ class HDF5VLADataset:
             "PickCube-v1": "Grasp a red cube and move it to a target goal position.",
             "StackCube-v1":  "Pick up a red cube and stack it on top of a green cube and let go of the cube without it falling.",
           #  "PlugCharger-v1": "Pick up one of the misplaced shapes on the board/kit and insert it into the correct empty slot.",
-            "PushCube-v1": "Push and move a cube to a goal region in front of it."
+          #  "PushCube-v1": "Push and move a cube to a goal region in front of it."
         }
 
     def __len__(self):
@@ -156,10 +156,18 @@ class HDF5VLADataset:
                 f"{i+1}.png"
             )
 
-            img = np.array(Image.open(image_path))
+            if os.path.exists(image_path):
+                img_history = np.array(Image.open(image_path))
+            else:
+            # If no episode found, skip this one
+                img_history = np.zeros((64, 64, 3), dtype=np.uint8)  # or whatever shape you expect
+
+
+        ############## Batching works differently in π0
+            #img = np.array(Image.open(image_path))
           #  img_history.append(img)
         #img_history = np.array(img_history)
-        img_history = img  # Batching works differently in π0
+       # img_history = img  
         
         # img_history = images0[start_img_idx:end_img_idx]
         #  img_valid_len = img_history.shape[0]
