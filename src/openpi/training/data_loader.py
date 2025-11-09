@@ -139,8 +139,8 @@ def create_torch_dataset(
         raise ValueError("Repo ID is not set. Cannot create dataset.")
     if repo_id == "fake":
         return FakeDataset(model_config, num_samples=1024)
-    if repo_id == "eyerisshe/openpi-maniskill-minidata":
-        dataset = h5_loader(repo_id)
+    if repo_id == "local":
+        dataset = h5_loader()
         return dataset
     else:
         dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(repo_id)

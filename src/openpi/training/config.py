@@ -966,7 +966,7 @@ _CONFIGS = [
         name="pi0_panda_lora",
         model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora", action_horizon=30),
         data=ManiSkillPandaDataConfig(
-            repo_id="eyerisshe/openpi-maniskill-minidata",  # REPLACE WITH YOUR OWN DATA REPO
+            repo_id="local",  # REPLACE WITH YOUR OWN DATA REPO
             base_config=DataConfig(prompt_from_task=True),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
