@@ -1,6 +1,6 @@
 #!/bin/bash
 
-names=(PickCube-v1 PushCube-v1 StackCube-v1)
+names=(PickCube-v1 PushCube-v1 StackCube-v1 PlugCharger-v1 PegInsertionSide-v1 PushCube-v2)
 
 for i in "${names[@]}"; do
     DIR="../src/openpi/training/maniskill_data/demo_1k/${i}/motionplanning"
