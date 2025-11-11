@@ -52,12 +52,11 @@ class PandaInputs(transforms.DataTransformFn):
                     "right_wrist_0_rgb": np.zeros_like(base_image),
                 },
                 "image_mask": {
-                    "base_0_rgb": np.True_,
-                    "left_wrist_0_rgb": np.True_,
-                    "right_wrist_0_rgb": np.False_,
+                    "base_0_rgb": data["base_image_mask"],
+                    "left_wrist_0_rgb": data["wrist_image_mask"],
+                    "right_wrist_0_rgb": data["wrist_image_mask"],
                 },
                 "prompt": data["task"],
-               
             }
       
         # Maniskill obs does not provide action and prompt during inference
