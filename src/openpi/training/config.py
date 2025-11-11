@@ -468,7 +468,8 @@ class ManiSkillPandaDataConfig(DataConfigFactory):
                 _transforms.RepackTransform(
                     {
                         "image": "image",
-                        "wrist_image": "wrist_image",
+                        "base_image_mask": "base_image_mask",
+                        "wrist_image_mask": "wrist_image_mask",
                         "state": "state",
                         "actions": "actions",
                         "task": "task",
@@ -542,9 +543,9 @@ class TrainConfig:
     num_train_steps: int = 30_000
 
     # How often (in steps) to log training metrics.
-    log_interval: int = 100
+    log_interval: int = 1 # Changed from 100 
     # How often (in steps) to save checkpoints.
-    save_interval: int = 1000
+    save_interval: int = 50 # Changed from 1000
     # If set, any existing checkpoints matching step % keep_period == 0 will not be deleted.
     keep_period: int | None = 5000
 
