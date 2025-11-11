@@ -18,6 +18,7 @@ class PandaInputs(transforms.DataTransformFn):
             # i.e. (128, 128, 3) for PickCube-v1
         if "sensor_data" in data:
             base_image = np.asarray(data["sensor_data"]["base_camera"]["rgb"].cpu()) # Gymnasium during inference returns data["sensor_data"]["base_camera"]["rgb"]
+            base_image = np.squeeze(base_image, axis=0)
         else:
             base_image = np.asarray(data["image"]) # Fine-tune data returns data["image"]
 
@@ -28,6 +29,7 @@ class PandaInputs(transforms.DataTransformFn):
         # Can get rid of second gripper value because it is a mimic of the first 
         if "agent" in data and "qpos" in data["agent"]:
             qpos = np.asarray(data["agent"]["qpos"]) # Gymnasium during inference returns data["agent"]["qpos"]
+            qpos = np.squeeze(qpos, axis=0)
         else:
             qpos = np.asarray(data["state"]) # Fine-tune data returns data["state"]
 
@@ -43,8 +45,9 @@ class PandaInputs(transforms.DataTransformFn):
         gripper = gripper_pos_normalized[np.newaxis]
 
         state_8d = np.concatenate([arm_joints, gripper])
-       
-        inputs = {
+
+        if "sensor_data" in data:
+            inputs = {
                 "state": state_8d,
                 "image": {
                     "base_0_rgb": base_image,
@@ -52,12 +55,28 @@ class PandaInputs(transforms.DataTransformFn):
                     "right_wrist_0_rgb": np.zeros_like(base_image),
                 },
                 "image_mask": {
-                    "base_0_rgb": data["base_image_mask"],
-                    "left_wrist_0_rgb": data["wrist_image_mask"],
-                    "right_wrist_0_rgb": data["wrist_image_mask"],
+                    "base_0_rgb": np.True_,
+                    "left_wrist_0_rgb": np.False_,
+                    "right_wrist_0_rgb": np.False_,
                 },
-                "prompt": data["task"],
+                "prompt": "pick up red cube",
             }
+
+        else:
+            inputs = {
+                    "state": state_8d,
+                    "image": {
+                        "base_0_rgb": base_image,
+                        "left_wrist_0_rgb": np.zeros_like(base_image),
+                        "right_wrist_0_rgb": np.zeros_like(base_image),
+                    },
+                    "image_mask": {
+                        "base_0_rgb": data["base_image_mask"],
+                        "left_wrist_0_rgb": data["wrist_image_mask"],
+                        "right_wrist_0_rgb": data["wrist_image_mask"],
+                    },
+                    "prompt": data["task"],
+                }
       
         # Maniskill obs does not provide action and prompt during inference
         if "actions" in data:
