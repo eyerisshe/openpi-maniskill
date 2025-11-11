@@ -3,7 +3,6 @@ SCRIPT COURTESY OF RDT-1B TEAM
 Copied from [https://github.com/thu-ml/RoboticsDiffusionTransformer/blob/main/data/hdf5_maniskill_dataset.py]
 Adapted to fit π0
 """
-
 import os
 import h5py
 import yaml
@@ -32,13 +31,10 @@ def interpolate_action_sequence(action_sequence, target_size):
     N, D = action_sequence.shape
     indices_old = np.arange(N)
     indices_new = np.linspace(0, N - 1, target_size)
-
     interp_func = interp1d(indices_old, action_sequence, 
                            kind='linear', axis=0, assume_sorted=True)
     action_sequence_new = interp_func(indices_new)
-
     return action_sequence_new
-
 
 class HDF5VLADataset:
     """
@@ -48,12 +44,11 @@ class HDF5VLADataset:
     def __init__(self):
     
         # Multiple tasks
-        self.tasks = ['PickCube-v1', 'StackCube-v1', 'PushCube-v1']  # RDT-1 Team also included PlugCharger-v1 and PegInsertionSide-v1
+        self.tasks = ['PickCube-v1', 'StackCube-v1']  # RDT-1 Team also included PlugCharger-v1 and PegInsertionSide-v1 and PushCube-v1
         # Load configuration from YAML file
-        self.CHUNK_SIZE = 30
-        self.IMG_HISTORY_SIZE = 2
+        self.CHUNK_SIZE = 30  # π0 expects H=30
+        self.IMG_HISTORY_SIZE = 1  # CHANGED FROM H=2, adapted to π0's 3D inputs
         self.STATE_DIM = 128
-
         self.num_episode_per_task = 1000
         self.img = []
         self.state = []
@@ -72,7 +67,6 @@ class HDF5VLADataset:
                 "motionplanning",
                 f"{task}.h5"
             )
-
             with h5py.File(file_path, "r") as f:
                 trajs = f.keys() #  traj_0, traj_1,
                 # sort by the traj number
@@ -81,7 +75,6 @@ class HDF5VLADataset:
                     # images = f[traj]['obs']['sensor_data']['base_camera']['rgb'][:]
                     states = f[traj]['obs']['agent']['qpos'][:]
                     actions = f[traj]['actions'][:]
-
                     self.state.append(states)
                     self.action.append(actions)
                     # self.img.append(images)
@@ -98,7 +91,7 @@ class HDF5VLADataset:
             "PickCube-v1": "Grasp a red cube and move it to a target goal position.",
             "StackCube-v1":  "Pick up a red cube and stack it on top of a green cube and let go of the cube without it falling.",
           #  "PlugCharger-v1": "Pick up one of the misplaced shapes on the board/kit and insert it into the correct empty slot.",
-            "PushCube-v1": "Push and move a cube to a goal region in front of it."
+           # "PushCube-v1": "Push and move a cube to a goal region in front of it."
         }
 
     def __len__(self):
@@ -115,8 +108,8 @@ class HDF5VLADataset:
         Returns:
             dict: A dictionary containing the state, action, image, etc. for the sample.
         """
-        num_steps = len(self.action[index])
-        step_index = np.random.randint(0, num_steps)
+        num_steps = len(self.action[index]) # Length of Actions
+        step_index = np.random.randint(0, num_steps) # Random index based on Action
         task_index = index // self.num_episode_per_task
         language = self.task2lang[self.tasks[task_index]]
         task_inner_index = index % self.num_episode_per_task
@@ -127,6 +120,7 @@ class HDF5VLADataset:
         #     return False, None
 
         proc_index = task_inner_index // 100
+        proc_index = (task_inner_index // 100) % 5 ### UNCOMMENT IF USE COMPLETE RDT DATASET
         episode_index = task_inner_index % 100
         #  images0 = self.img[index]
         #   normalize to -1, 1
@@ -135,7 +129,6 @@ class HDF5VLADataset:
         states = states[:, :-1]  # remove the last state as it is replicate of the -2 state
         actions = (self.action[index] - self.action_min) / (self.action_max - self.action_min) * 2 - 1
         
-
         # Create the image history (as done in `parse_hdf5_file`)
     
         img_history = []
@@ -156,20 +149,25 @@ class HDF5VLADataset:
                 f"{i+1}.png"
             )
 
+            if not os.path.exists(image_path):
+            # If episode not found, try new index
+                index = np.random.randint(0, self.__len__())
+                return self.__getitem__(index) 
+
             img = np.array(Image.open(image_path))
-          #  img_history.append(img)
-        #img_history = np.array(img_history)
-        img_history = img  # Batching works differently in π0
-        
+            img_history.append(img)
+        img_history = np.array(img_history)
+       
+         
         # img_history = images0[start_img_idx:end_img_idx]
-        #  img_valid_len = img_history.shape[0]
+        img_valid_len = img_history.shape[0]
 
         # Pad images if necessary
-        # if img_valid_len < self.IMG_HISTORY_SIZE:
-        #     padding = np.tile(img_history[0:1], (self.IMG_HISTORY_SIZE - img_valid_len, 1, 1, 1))
-        #     img_history = np.concatenate([padding, img_history], axis=0)
-      #  img_history_mask = np.array([True] * img_valid_len)
-      
+        if img_valid_len < self.IMG_HISTORY_SIZE:
+            padding = np.tile(img_history[0:1], (self.IMG_HISTORY_SIZE - img_valid_len, 1, 1, 1))
+            img_history = np.concatenate([padding, img_history], axis=0)
+        img_history_mask = np.array([False] * (self.IMG_HISTORY_SIZE - img_valid_len) + [True] * img_valid_len)
+    
 
         # Compute state statistics
         state_std = np.std(states, axis=0)
@@ -177,8 +175,9 @@ class HDF5VLADataset:
         state_norm = np.sqrt(np.mean(states ** 2, axis=0))
 
         # Get state and action at the specified timestep
-       # state = states[step_index: step_index + 1]
-        state = states[step_index] # Batching works differently in π0
+        state = states[step_index: step_index + 1]
+      
+
         runtime_chunksize = self.CHUNK_SIZE // 4
         action_sequence = actions[step_index: step_index + runtime_chunksize]
         # we use linear interpolation to pad the action sequence
@@ -187,15 +186,22 @@ class HDF5VLADataset:
         if action_sequence.shape[0] < runtime_chunksize:
             padding = np.tile(action_sequence[-1:], (runtime_chunksize - action_sequence.shape[0], 1))
             action_sequence = np.concatenate([action_sequence, padding], axis=0)
-
+            
         action_sequence = interpolate_action_sequence(action_sequence, self.CHUNK_SIZE)
 
+        # Adapt to π0's 3-dimen input since ImageHistoryDimension is just =1 now
+        img_history = np.squeeze(img_history, axis=0) 
+        img_history_mask = np.squeeze(img_history_mask, axis=0)
+        state = np.squeeze(state, axis=0)
 
         return {
             "state": state,
             "actions": action_sequence,
             "image": img_history,
-            "wrist_image": np.zeros((self.IMG_HISTORY_SIZE, 0, 0, 0)),
+            # "wrist_image": np.zeros((self.IMG_HISTORY_SIZE, 0, 0, 0)),
+            "base_image_mask": img_history_mask,
+            # "wrist_image_mask": np.zeros(self.IMG_HISTORY_SIZE, dtype=bool),
+            "wrist_image_mask": np.False_,
             "task": language
         }
 
