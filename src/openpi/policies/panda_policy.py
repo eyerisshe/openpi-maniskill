@@ -10,29 +10,25 @@ class PandaInputs(transforms.DataTransformFn):
 
     def __call__(self, data: dict) -> dict:
 
+        ### EDIT PROMPT BASED ON TASK
+        prompt = "pick up red cube"
+
         ### IMAGE
         # "panda_wristcam" robot in Maniskill has an additional hand_camera, if you wish to use 
             # obs["sensor_data"]["3rd_view_camera"]["rgb"]
             # However, fine-tuning data from the RDT team does not have wrist images so I stuck with that format
         # Maniskill images already in np.ndarray of shape (H, W, 3), uint8
             # i.e. (128, 128, 3) for PickCube-v1
-        if "sensor_data" in data:
-            base_image = np.asarray(data["sensor_data"]["base_camera"]["rgb"].cpu()) # Gymnasium during inference returns data["sensor_data"]["base_camera"]["rgb"]
-            base_image = np.squeeze(base_image, axis=0)
-        else:
-            base_image = np.asarray(data["image"]) # Fine-tune data returns data["image"]
-
-
+        base_image = np.asarray(data["sensor_data"]["base_camera"]["rgb"].cpu()) # Gymnasium during inference returns data["sensor_data"]["base_camera"]["rgb"]
+        base_image = np.squeeze(base_image, axis=0)
+  
         ### STATE
         # π0 accepts 8D array, gripper is 8th dimension and normalized to [0,1]
         # Maniskill obs["agent"] is outputting 9D state (7 joints + 2 grippers)
         # Can get rid of second gripper value because it is a mimic of the first 
-        if "agent" in data and "qpos" in data["agent"]:
-            qpos = np.asarray(data["agent"]["qpos"]) # Gymnasium during inference returns data["agent"]["qpos"]
-            qpos = np.squeeze(qpos, axis=0)
-        else:
-            qpos = np.asarray(data["state"]) # Fine-tune data returns data["state"]
-
+        qpos = np.asarray(data["agent"]["qpos"]) # Gymnasium during inference returns data["agent"]["qpos"]
+        qpos = np.squeeze(qpos, axis=0)
+      
         # Gripper range from panda URDF
         gripper_min = 0.00   # Lower
         gripper_max = 0.04   # Upper
@@ -46,44 +42,27 @@ class PandaInputs(transforms.DataTransformFn):
 
         state_8d = np.concatenate([arm_joints, gripper])
 
-        if "sensor_data" in data:
-            inputs = {
-                "state": state_8d,
-                "image": {
-                    "base_0_rgb": base_image,
-                    "left_wrist_0_rgb": np.zeros_like(base_image),
-                    "right_wrist_0_rgb": np.zeros_like(base_image),
-                },
-                "image_mask": {
-                    "base_0_rgb": np.True_,
-                    "left_wrist_0_rgb": np.False_,
-                    "right_wrist_0_rgb": np.False_,
-                },
-                "prompt": "pick up red cube",
-            }
+        inputs = {
+            "state": state_8d,
+            "image": {
+                "base_0_rgb": base_image,
+                "left_wrist_0_rgb": np.zeros_like(base_image),
+                "right_wrist_0_rgb": np.zeros_like(base_image),
+            },
+            "image_mask": {
+                "base_0_rgb": np.True_,
+                "left_wrist_0_rgb": np.False_,
+                "right_wrist_0_rgb": np.False_,
+            },
+            "prompt": prompt,
+        }
 
-        else:
-            inputs = {
-                    "state": state_8d,
-                    "image": {
-                        "base_0_rgb": base_image,
-                        "left_wrist_0_rgb": np.zeros_like(base_image),
-                        "right_wrist_0_rgb": np.zeros_like(base_image),
-                    },
-                    "image_mask": {
-                        "base_0_rgb": data["base_image_mask"],
-                        "left_wrist_0_rgb": data["wrist_image_mask"],
-                        "right_wrist_0_rgb": data["wrist_image_mask"],
-                    },
-                    "prompt": data["task"],
-                }
-      
         # Maniskill obs does not provide action and prompt during inference
+        # Use during training
         if "actions" in data:
             inputs["actions"] = data["actions"]
 
         return inputs
-
 
 @dataclasses.dataclass(frozen=True)
 class PandaOutputs(transforms.DataTransformFn):
