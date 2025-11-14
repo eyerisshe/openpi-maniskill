@@ -1,6 +1,6 @@
 #!/bin/bash
 
-target_dir="PATH/TO/DATASET"
+target_dir="PATH/TO/DATASET" # Where you would like to store the downloaded files
 array=(aa ab ac ad ae af ag ah ai aj ak al am an ao ap aq)
 
 mkdir -p "$target_dir"
