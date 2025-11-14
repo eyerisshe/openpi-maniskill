@@ -468,7 +468,8 @@ class ManiSkillPandaDataConfig(DataConfigFactory):
                 _transforms.RepackTransform(
                     {
                         "image": "image",
-                        "wrist_image": "wrist_image",
+                        "base_image_mask": "base_image_mask",
+                        "wrist_image_mask": "wrist_image_mask",
                         "state": "state",
                         "actions": "actions",
                         "task": "task",
@@ -542,9 +543,9 @@ class TrainConfig:
     num_train_steps: int = 30_000
 
     # How often (in steps) to log training metrics.
-    log_interval: int = 100
+    log_interval: int = 1 # Changed from 100 
     # How often (in steps) to save checkpoints.
-    save_interval: int = 1000
+    save_interval: int = 50 # Changed from 1000
     # If set, any existing checkpoints matching step % keep_period == 0 will not be deleted.
     keep_period: int | None = 5000
 
@@ -964,17 +965,27 @@ _CONFIGS = [
 ###########################################################################################################################################################
     TrainConfig(
         name="pi0_panda_lora",
-        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora", action_horizon=30),
+        model=pi0_config.Pi0Config(),
         data=ManiSkillPandaDataConfig(
-            repo_id="local",  # REPLACE WITH YOUR OWN DATA REPO
+           # repo_id="local",  # REPLACE WITH YOUR OWN DATA REPO
             base_config=DataConfig(prompt_from_task=True),
+            assets = AssetsConfig(asset_id = "local"), 
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=5_000, 
-        freeze_filter=pi0_config.Pi0Config(
-            paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
-        ).get_freeze_filter(),
-        ema_decay=None,
+    ),
+
+    TrainConfig(
+        name="pi0_panda",
+        model=pi0_config.Pi0Config(),
+        data=ManiSkillPandaDataConfig(
+           # repo_id="local",  # REPLACE WITH YOUR OWN DATA REPO
+            base_config=DataConfig(prompt_from_task=True),
+            assets = AssetsConfig(assets_dir="gs://openpi-assets/checkpoints/pi0_base/assets", 
+            asset_id = "franka"), 
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=5_000, 
     ),
 ###########################################################################################################################################################
     #
