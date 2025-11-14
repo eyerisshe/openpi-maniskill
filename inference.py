@@ -34,9 +34,10 @@ env = gym.make(
     obs_mode = "rgb"
 )
 
-VIDEO_STEPS = 16
-EPISODE = 1
+
+EPISODE = 80
 H = 16
+VIDEO_STEPS = EPISODE * H
 
 env = RecordEpisode(
     env,
@@ -50,8 +51,8 @@ obs, _ = env.reset()
 
 for _ in range(EPISODE):
     action = policy.infer(obs)["actions"] # Sample action from π0
-    count = 0
-    while (count < H):
-        for i in action: # Sample actions from chunk
-            obs, rew, terminated, truncated, info = env.step(i)
-            count = count + 1
+    action = action[:H,:]
+    
+    for i in action: # Sample actions from chunk
+        obs, rew, terminated, truncated, info = env.step(i)
+        
