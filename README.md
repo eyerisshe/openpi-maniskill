@@ -8,7 +8,7 @@ Download ManiSkill3 following the instructions on [repo](https://github.com/haos
 
 Then clone this repo:
 ```bash
-git clone --recurse-submodules git@github.com:Physical-Intelligence/openpi.git
+git clone --recurse-submodules git@github.com:eyerisshe/openpi-maniskill.git
 ```
 
 ## Guide
@@ -22,4 +22,4 @@ I provide normalization stats and a [checkpoint](https://huggingface.co/datasets
 - `assets`: directory contains norm stats based on the data _subset_ (though they should automatically be loaded in if using `pi0_panda_lora` checkpoint)
 - Uncomment code blocks in `inference.py` to use `pi0_panda_lora` checkpoint + norm stats instead of the `pi0_base` checkpoint
 
-I hope this is a beginner-friendly guide that 
+I hope this is a beginner-friendly guide that can help clarify how to adapt $\pi_0$ to simulators!
