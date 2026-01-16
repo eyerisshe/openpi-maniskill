@@ -3,6 +3,8 @@ This repo deploys the [openpi](https://github.com/Physical-Intelligence/openpi) 
 
 Files are provided to run $\pi_0$ inference on ManiSkill's [Franka Emika Panda](https://maniskill.readthedocs.io/en/latest/robots/panda/) robot. 
 
+<img src="maniskill-sample.png" width="200" height="150" alt="Logo">
+
 ## Setup
 Download ManiSkill3 following the instructions on [repo](https://github.com/haosulab/ManiSkill).
 
